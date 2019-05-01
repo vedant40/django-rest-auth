@@ -1,23 +1,11 @@
 import json
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.test.client import Client, MULTIPART_CONTENT
 from django.utils.encoding import force_text
 
 from rest_framework import status
-from rest_framework import permissions
-
-try:
-    from django.urls import reverse
-except ImportError:
-    from django.core.urlresolvers import reverse
-
-
-class CustomPermissionClass(permissions.BasePermission):
-    message = 'You shall not pass!'
-
-    def has_permission(self, request, view):
-        return False
 
 
 class APIClient(Client):
@@ -29,7 +17,8 @@ class APIClient(Client):
         return self.generic('OPTIONS', path, data, content_type, **extra)
 
 
-class TestsMixin(object):
+class BaseAPITestCase(object):
+
     """
     base for API tests:
         * easy request calls, f.e.: self.post(url, data), self.get(url)
@@ -75,6 +64,29 @@ class TestsMixin(object):
     def patch(self, *args, **kwargs):
         return self.send_request('patch', *args, **kwargs)
 
+    # def put(self, *args, **kwargs):
+    #     return self.send_request('put', *args, **kwargs)
+
+    # def delete(self, *args, **kwargs):
+    #     return self.send_request('delete', *args, **kwargs)
+
+    # def options(self, *args, **kwargs):
+    #     return self.send_request('options', *args, **kwargs)
+
+    # def post_file(self, *args, **kwargs):
+    #     kwargs['content_type'] = MULTIPART_CONTENT
+    #     return self.send_request('post', *args, **kwargs)
+
+    # def get_file(self, *args, **kwargs):
+    #     content_type = None
+    #     if 'content_type' in kwargs:
+    #         content_type = kwargs.pop('content_type')
+    #     response = self.send_request('get', *args, **kwargs)
+    #     if content_type:
+    #         self.assertEqual(
+    #             bool(filter(lambda x: content_type in x, response._headers['content-type'])), True)
+    #     return response
+
     def init(self):
         settings.DEBUG = True
         self.client = APIClient()
@@ -85,14 +97,11 @@ class TestsMixin(object):
         self.register_url = reverse('rest_register')
         self.password_reset_url = reverse('rest_password_reset')
         self.user_url = reverse('rest_user_details')
-        self.verify_email_url = reverse('rest_verify_email')
+        self.veirfy_email_url = reverse('rest_verify_email')
         self.fb_login_url = reverse('fb_login')
         self.tw_login_url = reverse('tw_login')
         self.tw_login_no_view_url = reverse('tw_login_no_view')
         self.tw_login_no_adapter_url = reverse('tw_login_no_adapter')
-        self.fb_connect_url = reverse('fb_connect')
-        self.tw_connect_url = reverse('tw_connect')
-        self.social_account_list_url = reverse('social_account_list')
 
     def _login(self):
         payload = {

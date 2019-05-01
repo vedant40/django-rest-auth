@@ -8,12 +8,10 @@ if 'allauth.socialaccount' in settings.INSTALLED_APPS:
     from allauth.socialaccount.models import SocialToken
     from allauth.socialaccount.providers.oauth.client import OAuthError
 
-    from rest_auth.registration.serializers import SocialConnectMixin
-
 
 class TwitterLoginSerializer(serializers.Serializer):
-    access_token = serializers.CharField()
-    token_secret = serializers.CharField()
+    access_token = serializers.CharField(required=True)
+    token_secret = serializers.CharField(required=True)
 
     def _get_request(self):
         request = self.context.get('request')
@@ -23,17 +21,15 @@ class TwitterLoginSerializer(serializers.Serializer):
 
     def get_social_login(self, adapter, app, token, response):
         """
-        :param adapter: allauth.socialaccount Adapter subclass.
-            Usually OAuthAdapter or Auth2Adapter
+
+        :param adapter: allauth.socialaccount Adapter subclass. Usually OAuthAdapter or Auth2Adapter
         :param app: `allauth.socialaccount.SocialApp` instance
         :param token: `allauth.socialaccount.SocialToken` instance
         :param response: Provider's response for OAuth1. Not used in the
-        :returns: A populated instance of the
-            `allauth.socialaccount.SocialLoginView` instance
+        :returns: A populated instance of the `allauth.socialaccount.SocialLoginView` instance
         """
         request = self._get_request()
-        social_login = adapter.complete_login(request, app, token,
-                                              response=response)
+        social_login = adapter.complete_login(request, app, token, response=response)
         social_login.token = token
         return social_login
 
@@ -43,12 +39,12 @@ class TwitterLoginSerializer(serializers.Serializer):
 
         if not view:
             raise serializers.ValidationError(
-                "View is not defined, pass it as a context variable"
+                'View is not defined, pass it as a context variable'
             )
 
         adapter_class = getattr(view, 'adapter_class', None)
         if not adapter_class:
-            raise serializers.ValidationError("Define adapter_class in view")
+            raise serializers.ValidationError('Define adapter_class in view')
 
         adapter = adapter_class(request)
         app = adapter.get_provider().get_app(request)
@@ -75,7 +71,3 @@ class TwitterLoginSerializer(serializers.Serializer):
         attrs['user'] = login.account.user
 
         return attrs
-
-
-class TwitterConnectSerializer(SocialConnectMixin, TwitterLoginSerializer):
-    pass

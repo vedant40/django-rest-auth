@@ -8,13 +8,8 @@ from allauth.socialaccount.providers.twitter.views import TwitterOAuthAdapter
 from rest_framework.decorators import api_view
 
 from rest_auth.urls import urlpatterns
-from rest_auth.registration.views import (
-    SocialLoginView, SocialConnectView, SocialAccountListView,
-    SocialAccountDisconnectView
-)
-from rest_auth.social_serializers import (
-    TwitterLoginSerializer, TwitterConnectSerializer
-)
+from rest_auth.registration.views import SocialLoginView
+from rest_auth.social_serializers import TwitterLoginSerializer
 
 
 class FacebookLogin(SocialLoginView):
@@ -24,15 +19,6 @@ class FacebookLogin(SocialLoginView):
 class TwitterLogin(SocialLoginView):
     adapter_class = TwitterOAuthAdapter
     serializer_class = TwitterLoginSerializer
-
-
-class FacebookConnect(SocialConnectView):
-    adapter_class = FacebookOAuth2Adapter
-
-
-class TwitterConnect(SocialConnectView):
-    adapter_class = TwitterOAuthAdapter
-    serializer_class = TwitterConnectSerializer
 
 
 class TwitterLoginSerializerFoo(TwitterLoginSerializer):
@@ -63,10 +49,5 @@ urlpatterns += [
     url(r'^social-login/twitter/$', TwitterLogin.as_view(), name='tw_login'),
     url(r'^social-login/twitter-no-view/$', twitter_login_view, name='tw_login_no_view'),
     url(r'^social-login/twitter-no-adapter/$', TwitterLoginNoAdapter.as_view(), name='tw_login_no_adapter'),
-    url(r'^social-login/facebook/connect/$', FacebookConnect.as_view(), name='fb_connect'),
-    url(r'^social-login/twitter/connect/$', TwitterConnect.as_view(), name='tw_connect'),
-    url(r'^socialaccounts/$', SocialAccountListView.as_view(), name='social_account_list'),
-    url(r'^socialaccounts/(?P<pk>\d+)/disconnect/$', SocialAccountDisconnectView.as_view(),
-        name='social_account_disconnect'),
     url(r'^accounts/', include('allauth.socialaccount.urls'))
 ]

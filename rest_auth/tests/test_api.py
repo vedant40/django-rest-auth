@@ -1,26 +1,17 @@
+from django.core.urlresolvers import reverse
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.conf import settings
 from django.utils.encoding import force_text
 
-from allauth.account import app_settings as account_app_settings
 from rest_framework import status
-from rest_framework.test import APIRequestFactory
-
-from rest_auth.registration.views import RegisterView
-from rest_auth.registration.app_settings import register_permission_classes
-
-from .mixins import TestsMixin, CustomPermissionClass
-
-try:
-    from django.urls import reverse
-except ImportError:
-    from django.core.urlresolvers import reverse
+from allauth.account import app_settings as account_app_settings
+from .test_base import BaseAPITestCase
 
 
 @override_settings(ROOT_URLCONF="tests.urls")
-class APIBasicTests(TestsMixin, TestCase):
+class APITestCase1(TestCase, BaseAPITestCase):
     """
     Case #1:
     - user profile: defined
@@ -407,20 +398,6 @@ class APIBasicTests(TestsMixin, TestCase):
         self._login()
         self._logout()
 
-    @override_settings(REST_AUTH_REGISTER_PERMISSION_CLASSES=(CustomPermissionClass,))
-    def test_registration_with_custom_permission_class(self):
-
-        class CustomRegisterView(RegisterView):
-            permission_classes = register_permission_classes()
-            authentication_classes = ()
-
-        factory = APIRequestFactory()
-        request = factory.post('/customer/details', self.REGISTRATION_DATA, format='json')
-
-        response = CustomRegisterView.as_view()(request)
-        self.assertEqual(response.data['detail'], CustomPermissionClass.message)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
     @override_settings(REST_USE_JWT=True)
     def test_registration_with_jwt(self):
         user_count = get_user_model().objects.all().count()
@@ -482,7 +459,7 @@ class APIBasicTests(TestsMixin, TestCase):
         email_confirmation = new_user.emailaddress_set.get(email=self.EMAIL)\
             .emailconfirmation_set.order_by('-created')[0]
         self.post(
-            self.verify_email_url,
+            self.veirfy_email_url,
             data={"key": email_confirmation.key},
             status_code=status.HTTP_200_OK
         )

@@ -6,11 +6,10 @@ from django.utils.http import urlsafe_base64_decode as uid_decoder
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import force_text
 
+from .models import TokenModel
+
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
-
-from .models import TokenModel
-from .utils import import_callable
 
 # Get the UserModel
 UserModel = get_user_model()
@@ -21,14 +20,11 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(style={'input_type': 'password'})
 
-    def authenticate(self, **kwargs):
-        return authenticate(self.context['request'], **kwargs)
-
     def _validate_email(self, email, password):
         user = None
 
         if email and password:
-            user = self.authenticate(email=email, password=password)
+            user = authenticate(email=email, password=password)
         else:
             msg = _('Must include "email" and "password".')
             raise exceptions.ValidationError(msg)
@@ -39,7 +35,7 @@ class LoginSerializer(serializers.Serializer):
         user = None
 
         if username and password:
-            user = self.authenticate(username=username, password=password)
+            user = authenticate(username=username, password=password)
         else:
             msg = _('Must include "username" and "password".')
             raise exceptions.ValidationError(msg)
@@ -50,9 +46,9 @@ class LoginSerializer(serializers.Serializer):
         user = None
 
         if email and password:
-            user = self.authenticate(email=email, password=password)
+            user = authenticate(email=email, password=password)
         elif username and password:
-            user = self.authenticate(username=username, password=password)
+            user = authenticate(username=username, password=password)
         else:
             msg = _('Must include either "username" or "email" and "password".')
             raise exceptions.ValidationError(msg)
@@ -74,7 +70,7 @@ class LoginSerializer(serializers.Serializer):
                 user = self._validate_email(email, password)
 
             # Authentication through username
-            elif app_settings.AUTHENTICATION_METHOD == app_settings.AuthenticationMethod.USERNAME:
+            if app_settings.AUTHENTICATION_METHOD == app_settings.AuthenticationMethod.USERNAME:
                 user = self._validate_username(username, password)
 
             # Authentication through either username or email
@@ -124,6 +120,7 @@ class TokenSerializer(serializers.ModelSerializer):
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
+
     """
     User model w/o password
     """
@@ -138,31 +135,22 @@ class JWTSerializer(serializers.Serializer):
     Serializer for JWT authentication.
     """
     token = serializers.CharField()
-    user = serializers.SerializerMethodField()
-
-    def get_user(self, obj):
-        """
-        Required to allow using custom USER_DETAILS_SERIALIZER in
-        JWTSerializer. Defining it here to avoid circular imports
-        """
-        rest_auth_serializers = getattr(settings, 'REST_AUTH_SERIALIZERS', {})
-        JWTUserDetailsSerializer = import_callable(
-            rest_auth_serializers.get('USER_DETAILS_SERIALIZER', UserDetailsSerializer)
-        )
-        user_data = JWTUserDetailsSerializer(obj['user'], context=self.context).data
-        return user_data
+    user = UserDetailsSerializer()
 
 
 class PasswordResetSerializer(serializers.Serializer):
+
     """
     Serializer for requesting a password reset e-mail.
     """
+
     email = serializers.EmailField()
 
     password_reset_form_class = PasswordResetForm
 
     def get_email_options(self):
-        """Override this method to change default e-mail options"""
+        """ Override this method to change default e-mail options
+        """
         return {}
 
     def validate_email(self, value):
@@ -190,10 +178,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     """
     Serializer for requesting a password reset e-mail.
     """
+
     new_password1 = serializers.CharField(max_length=128)
     new_password2 = serializers.CharField(max_length=128)
-    uid = serializers.CharField()
-    token = serializers.CharField()
+
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
 
     set_password_form_class = SetPasswordForm
 
@@ -223,10 +213,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return attrs
 
     def save(self):
-        return self.set_password_form.save()
+        self.set_password_form.save()
 
 
 class PasswordChangeSerializer(serializers.Serializer):
+
     old_password = serializers.CharField(max_length=128)
     new_password1 = serializers.CharField(max_length=128)
     new_password2 = serializers.CharField(max_length=128)
@@ -256,8 +247,7 @@ class PasswordChangeSerializer(serializers.Serializer):
         )
 
         if all(invalid_password_conditions):
-            err_msg = _("Your old password was entered incorrectly. Please enter it again.")
-            raise serializers.ValidationError(err_msg)
+            raise serializers.ValidationError('Invalid password')
         return value
 
     def validate(self, attrs):
